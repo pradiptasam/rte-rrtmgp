@@ -4,7 +4,7 @@ project(standalone C CXX)
 # find_library(NETCDF_LIBRARY NAMES netcdf PATHS /sw/spack-levante/netcdf-c-4.9.2-ytsqvg/lib)
 # find_path(NETCDF_INCLUDE_DIR NAMES netcdf.h PATHS /sw/spack-levante/netcdf-c-4.9.2-ytsqvg/include)
 
-# set(CMAKE_BUILD_TYPE "RelWithDebInfo")
+set(CMAKE_BUILD_TYPE "DEBUG")
 
 # set(CMAKE_CXX_FLAGS "-std=gnu++17 -O2 -g -march=native -mtune=native" CACHE STRING "RelWithDebInfo C++ flags" FORCE)
 
@@ -15,6 +15,7 @@ find_library(netCDFCXX_LIBRARIES NAMES netcdf-cxx4 PATHS /work/k20200/k202170/sp
 find_path(netCDFCXX_INCLUDE_DIR NAMES netcdf PATHS /work/k20200/k202170/spack-sw/netcdf-cxx4-4.3.1-b7fmi4/include)
 #
 # set(NetCDF_DIR /work/k20200/k202170/spack-sw/netcdf-c-4.9.2-rp3zpy/lib64/cmake/netCDF)
+find_library(netCDF_LIBRARY NAMES netcdf PATHS /work/k20200/k202170/spack-sw/netcdf-c-4.9.2-rp3zpy/lib64)
 
 find_package(netCDF REQUIRED)
 if(NOT netCDF_FOUND)
@@ -36,7 +37,8 @@ set(
     SOURCES ${CMAKE_SOURCE_DIR}/main.cpp
    )
 
-add_library(${TARGET_NAME} MODULE ${SOURCES})
+add_executable(${TARGET_NAME} ${SOURCES})
+# add_library(${TARGET_NAME} MODULE ${SOURCES})
 target_include_directories(${TARGET_NAME} PUBLIC ../rte)
 target_include_directories(${TARGET_NAME} PUBLIC ../rte/kernels)
 target_include_directories(${TARGET_NAME} PUBLIC ../rrtmgp)
@@ -44,7 +46,7 @@ target_include_directories(${TARGET_NAME} PUBLIC ../rrtmgp/kernels)
 target_include_directories(${TARGET_NAME} PUBLIC ../)
 
 message(STATUS "NETCDF_INCLUDE_DIR: ${NETCDF_INCLUDE_DIR}")
-if (netCDFCXX_LIBRARIES AND netCDFCXX_INCLUDE_DIR)
+if (netCDFCXX_LIBRARIES AND netCDFCXX_INCLUDE_DIR AND netCDF_LIBRARY)
   target_include_directories(${TARGET_NAME} PUBLIC ${netCDF_INCLUDE_DIR})
   target_include_directories(${TARGET_NAME} PUBLIC ${netCDFCXX_INCLUDE_DIR})
 else()
@@ -62,7 +64,7 @@ if (RRTMGP_ENABLE_KOKKOS)
   find_package(Kokkos REQUIRED)
   # target_link_libraries(optical_props_pybind Kokkos::kokkos)
   target_compile_definitions(${TARGET_NAME} PUBLIC RRTMGP_ENABLE_KOKKOS)
-  target_link_libraries(${TARGET_NAME} PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/../../build/librrtmgp.a" "${CXX_LINK}" "${NETCDF_LIBRARIES}" Kokkos::kokkos)
+  target_link_libraries(${TARGET_NAME} PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/../../build/librrtmgp.a" "${CXX_LINK}" "${NETCDF_LIBRARIES}" "${netCDFCXX_LIBRARIES}" Kokkos::kokkos)
 endif()
 
 # Remove the unwanted architecture flags from CMAKE_CXX_FLAGS

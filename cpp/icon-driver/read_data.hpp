@@ -131,20 +131,23 @@ InputData read_netcdf_to_dict(const std::string &nc_file)
     try {
         // Open the netCDF file in read-only mode
         NcFile file(nc_file, NcFile::read);
+        // print the name of the file
+        std::cout << "File name: " << nc_file << std::endl;
 
         // Get dimensions
         NcDim ncolDim = file.getDim("ncol");
         NcDim nlayDim = file.getDim("nlay");  // "nlay" corresponds to klev in our code
         data.ncol = ncolDim.getSize();
         data.klev = nlayDim.getSize();
+        printf("ncol: %d, klev: %d\n", data.ncol, data.klev);
 
         // Read 2D variables
         data.dz         = read2DVar(file, "dz", data.ncol, data.klev);
-        data.zh         = read2DVar(file, "zh", data.ncol, data.klev);
+        data.zh         = read2DVar(file, "zh", data.ncol, data.klev+1);
         data.zf         = read2DVar(file, "zf", data.ncol, data.klev);
-        data.pp_hl      = read2DVar(file, "pp_hl", data.ncol, data.klev);
+        data.pp_hl      = read2DVar(file, "pp_hl", data.ncol, data.klev+1);
         data.pp_fl      = read2DVar(file, "pp_fl", data.ncol, data.klev);
-        data.tk_hl      = read2DVar(file, "tk_hl", data.ncol, data.klev);
+        data.tk_hl      = read2DVar(file, "tk_hl", data.ncol, data.klev+1);
         data.tk_fl      = read2DVar(file, "tk_fl", data.ncol, data.klev);
         data.xvmr_vap   = read2DVar(file, "xvmr_vap", data.ncol, data.klev);
         data.xm_liq     = read2DVar(file, "xm_liq", data.ncol, data.klev);

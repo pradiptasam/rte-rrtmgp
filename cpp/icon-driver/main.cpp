@@ -11,6 +11,7 @@
 int main() {
     // Name of the NetCDF input file.
     std::string filename = "rte_rrtmgp_interface_input.nc";
+    printf("filename: %s\n", filename.c_str());
 
     try {
         // Read data from the netCDF file.
