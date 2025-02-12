@@ -34,7 +34,9 @@ message(STATUS "netCDF-C libraries: ${netCDF_LIBRARIES}")
 
 set(TARGET_NAME icon_radiation)
 set(
-    SOURCES ${CMAKE_SOURCE_DIR}/main.cpp
+    SOURCES
+    ${CMAKE_SOURCE_DIR}/read_data.cpp
+    ${CMAKE_SOURCE_DIR}/main.cpp
    )
 
 add_executable(${TARGET_NAME} ${SOURCES})
