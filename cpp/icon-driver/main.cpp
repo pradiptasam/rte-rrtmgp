@@ -6,6 +6,7 @@
 // Include the netCDF header and any other necessary headers
 #include <netcdf>
 #include "read_data.hpp"
+#include "rte_rrtmgp_interface.hpp"
 
 // (Assume here that InputData, read_netcdf_to_dict, and RteRrtmgpInterface have been defined as in the previous example)
 
@@ -32,10 +33,10 @@ int main() {
       std::cout << "Data read from file: ncol = " << data.ncol << std::endl;
 
       // Create the interface object with the read data.
-      // RteRrtmgpInterface iface(data);
+      RteRrtmgpInterface iface(data);
 
       // Call the on_block() method to process the data.
-      // iface.on_block();
+      iface.on_block();
 
       std::cout << "Test passed." << std::endl;
     } catch (std::exception &e) {
