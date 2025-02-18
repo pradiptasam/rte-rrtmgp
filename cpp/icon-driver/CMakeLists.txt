@@ -22,7 +22,7 @@ if(NOT netCDF_FOUND)
   message(FATAL_ERROR "netCDF-C not found!")
 endif()
 message(STATUS "netCDF-C include dirs: ${netCDF_INCLUDE_DIR}")
-message(STATUS "netCDF-C libraries: ${netCDF_LIBRARIES}")
+message(STATUS "netCDF-C libraries: ${netCDF_LIBRARY}")
 
 # Find the netCDF-C++4 library.
 # find_package(netCDFCxx REQUIRED)
@@ -36,6 +36,7 @@ set(TARGET_NAME icon_radiation)
 set(
     SOURCES
     ${CMAKE_SOURCE_DIR}/read_data.cpp
+    ${CMAKE_SOURCE_DIR}/rte_rrtmgp_interface.cpp
     ${CMAKE_SOURCE_DIR}/main.cpp
    )
 
@@ -45,6 +46,8 @@ target_include_directories(${TARGET_NAME} PUBLIC ../rte)
 target_include_directories(${TARGET_NAME} PUBLIC ../rte/kernels)
 target_include_directories(${TARGET_NAME} PUBLIC ../rrtmgp)
 target_include_directories(${TARGET_NAME} PUBLIC ../rrtmgp/kernels)
+target_include_directories(${TARGET_NAME} PUBLIC ../extensions/cloud_optics)
+target_include_directories(${TARGET_NAME} PUBLIC ../examples)
 target_include_directories(${TARGET_NAME} PUBLIC ../)
 
 message(STATUS "NETCDF_INCLUDE_DIR: ${NETCDF_INCLUDE_DIR}")
@@ -66,7 +69,8 @@ if (RRTMGP_ENABLE_KOKKOS)
   find_package(Kokkos REQUIRED)
   # target_link_libraries(optical_props_pybind Kokkos::kokkos)
   target_compile_definitions(${TARGET_NAME} PUBLIC RRTMGP_ENABLE_KOKKOS)
-  target_link_libraries(${TARGET_NAME} PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/../../build/librrtmgp.a" "${CXX_LINK}" "${NETCDF_LIBRARIES}" "${netCDFCXX_LIBRARIES}" Kokkos::kokkos)
+  message(STATUS "netCDF-C libraries: ${netCDF_LIBRARY}")
+  target_link_libraries(${TARGET_NAME} PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/../../build/librrtmgp.a" "${CXX_LINK}" "${netCDF_LIBRARY}" "${netCDFCXX_LIBRARIES}" Kokkos::kokkos)
 endif()
 
 # Remove the unwanted architecture flags from CMAKE_CXX_FLAGS
