@@ -8,15 +8,19 @@
 #include <stdexcept>
 #include <algorithm>
 #include <Kokkos_Core.hpp>
+#include "rrtmgp_conversion.h"
 
 using namespace netCDF;
 using namespace netCDF::exceptions;
 using real   = double;
 using LayoutT = Kokkos::LayoutRight; // or LayoutLeft
 using DeviceT = Kokkos::DefaultExecutionSpace; // or another device type
+using HDeviceT = Kokkos::DefaultHostExecutionSpace;
 using real1d_t = Kokkos::View<real*,   LayoutT, DeviceT>;
 using real2d_t = Kokkos::View<real**,  LayoutT, DeviceT>;
 using real3d_t = Kokkos::View<real***, LayoutT, DeviceT>;
+using hreal2d_t = Kokkos::View<real**,  LayoutT, HDeviceT>;
+// using pool_t = conv::MemPoolSingleton<real, LayoutT, DeviceT>;
 
 //---------------------------------------------------------------------
 // Define a structure to hold the input arrays and scalar values
