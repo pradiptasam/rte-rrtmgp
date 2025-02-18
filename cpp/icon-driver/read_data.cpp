@@ -14,17 +14,25 @@ real1d_t read1DVar(netCDF::NcFile &file,
     std::vector<real> flat(ncol);
     var.getVar(flat.data());
 
+    // typedef Kokkos::View<real_t *, Kokkos::HostSpace, Kokkos::MemoryUnmanaged>
+    //    unmanaged_1d_view_t;
+
     // Allocate a 1D Kokkos view.
     real1d_t view("var1d", ncol);
+    // real1d_t host_view("var1d", ncol);
     // Create a host mirror.
-    auto host_view = Kokkos::create_mirror_view(view);
+
+    Kokkos::View<real * , Kokkos::LayoutLeft, Kokkos::HostSpace, Kokkos::MemoryUnmanaged> host_view(flat.data(), ncol);
+
+    // auto host_view = Kokkos::create_mirror_view(view);
 
     // Copy data from the flat vector into the host view.
-    for (int i = 0; i < ncol; ++i) {
-        host_view(i) = flat[i];
-    }
+    // for (int i = 0; i < ncol; ++i) {
+    //     host_view(i) = flat[i];
+    // }
     // Deep copy the host view to the device view.
     Kokkos::deep_copy(view, host_view);
+
     return view;
 }
 
@@ -43,16 +51,18 @@ real2d_t read2DVar(netCDF::NcFile &file,
     std::vector<real> flat(ncol * klev);
     var.getVar(flat.data());
 
+    Kokkos::View<real ** , Kokkos::LayoutLeft, Kokkos::HostSpace, Kokkos::MemoryUnmanaged> host_view(flat.data(), ncol, klev);
+
     // Allocate a 2D Kokkos view.
     real2d_t view("var2d", ncol, klev);
-    auto host_view = Kokkos::create_mirror_view(view);
+    // auto host_view = Kokkos::create_mirror_view(view);
 
     // Fill the host view with the flattened data.
-    for (int i = 0; i < ncol; ++i) {
-        for (int j = 0; j < klev; ++j) {
-            host_view(i,j) = flat[i * klev + j];
-        }
-    }
+    // for (int i = 0; i < ncol; ++i) {
+    //     for (int j = 0; j < klev; ++j) {
+    //         host_view(i,j) = flat[i * klev + j];
+    //     }
+    // }
     Kokkos::deep_copy(view, host_view);
     return view;
 }
