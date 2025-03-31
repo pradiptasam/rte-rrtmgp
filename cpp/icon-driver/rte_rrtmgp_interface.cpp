@@ -10,6 +10,7 @@
 #include "mo_load_coefficients.h"
 #include "mo_fluxes.h"
 #include "mo_rte_lw.h"
+#include "mo_rte_sw.h"
 
 // Constructor definition.
 RteRrtmgpInterface::RteRrtmgpInterface(const InputData &data)
@@ -26,6 +27,9 @@ RteRrtmgpInterface::RteRrtmgpInterface(const InputData &data)
     rhoh2o = 1.0e3;
     effective_radius = 1.0e6 * droplet_scale * pow((3.0e-9 / (4.0 * M_PI * rhoh2o)), 1.0/3.0);
     nir_vis_boundary = 14500.0;
+
+    fluxes_lw = FluxesBroadbandK<real, LayoutT>();
+    fluxes_sw = FluxesBroadbandK<real, LayoutT>();
 }
 
 /// Clamp the pressure values in the source view and write the results to the target view.
@@ -121,7 +125,11 @@ void RteRrtmgpInterface::on_block() {
     // print out the whole xvmr_vap array
     for (int i = 0; i < ncol; ++i) {
       for (int j = 0; j < klev; ++j) {
-        std::cout << xvmr_vap(i, j) - input.xvmr_vap(i,j) << " ";
+        // print the indices and the value only if not equal to zero
+        double value = xvmr_vap(i, j) - input.xvmr_vap(i,j) ;
+        if (value != 0.0) {
+          std::cout << i << " " << j << " " << value << std::endl;
+        }
       }
       std::cout << std::endl;
     }
@@ -287,26 +295,6 @@ void RteRrtmgpInterface::on_block() {
     Kokkos::fence();
 
     //
-    // Surface albedo interpolation
-    //
-    real2d_t band_lims("band_lims", 2, nbndlw);
-
-    band_lims = k_dist_lw.get_band_lims_wavenumber();
-
-    real2d_t albdif("albdif", nbndlw, ncol);
-    real2d_t albdir("albdir", nbndlw, ncol);
-
-    Kokkos::MDRangePolicy<Kokkos::Rank<2>> policy_alb({0,0}, {nbndlw, ncol});
-    Kokkos::parallel_for("AlbedoInterpolation", policy_alb, KOKKOS_LAMBDA (const int band, const int j) {
-      real delwave = band_lims(1, band) - band_lims(0, band);
-      real frc_vis = Kokkos::min(1.0, Kokkos::max(0.0, (band_lims(1, band) - nir_vis_boundary) / delwave));
-      albdif(band,j) = input.alb_vis_dif(j) * frc_vis + input.alb_nir_dif(j) * (1.0 - frc_vis);
-      albdir(band,j) = input.alb_vis_dir(j) * frc_vis + input.alb_nir_dir(j) * (1.0 - frc_vis);
-    });
-
-    Kokkos::fence();
-
-    //
     // 4.1 Longwave radiative Transfer
 
     //
@@ -378,8 +366,6 @@ void RteRrtmgpInterface::on_block() {
     real2d_t flux_dn_lw ( "flux_dn_lw", ncol, klev+1);
     real2d_t flux_net_lw("flux_net_lw", ncol, klev+1);
 
-    FluxesBroadbandK<real, LayoutT> fluxes_lw;
-
     fluxes_lw.flux_up = flux_up_lw;
     fluxes_lw.flux_dn = flux_dn_lw;
     fluxes_lw.flux_net = flux_net_lw;
@@ -432,7 +418,7 @@ void RteRrtmgpInterface::on_block() {
 
     cloud_optics_sw.cloud_optics(ncol, klev, zdwp, ziwp, re_drop, re_cryst, clouds_bnd_sw);
 
-    cloud_optics_sw.cloud_optics(ncol, klev, zlwp, ziwp, re_drop, re_cryst, clouds_bnd_sw);
+    // cloud_optics_sw.cloud_optics(ncol, klev, zlwp, ziwp, re_drop, re_cryst, clouds_bnd_sw);
 
     clouds_bnd_sw.delta_scale();
     clouds_bnd_sw.increment(atmos_sw);
@@ -445,6 +431,54 @@ void RteRrtmgpInterface::on_block() {
     snow_bnd_sw.delta_scale();
     snow_bnd_lw.increment(atmos_lw);
     snow_bnd_lw.finalize();
+
+    //  Boundary conditions depending on whether the k-distribution being supplied
+    real2d_t sfc_alb_dir("sfc_alb_dir",nbndsw,ncol);
+    real2d_t sfc_alb_dif("sfc_alb_dif",nbndsw,ncol);
+    real1d_t mu0_k        ("mu0"        ,ncol);
+
+    // Ocean-ish values for no particular reason
+    Kokkos::deep_copy(sfc_alb_dir, 0.06);
+    Kokkos::deep_copy(sfc_alb_dif, 0.06);
+    Kokkos::deep_copy(mu0_k        , 0.86);
+
+    //
+    // Surface albedo interpolation
+    //
+    real2d_t band_lims("band_lims", 2, nbndlw);
+
+    band_lims = k_dist_lw.get_band_lims_wavenumber();
+
+    real2d_t albdif("albdif", nbndsw, ncol);
+    real2d_t albdir("albdir", nbndsw, ncol);
+
+    Kokkos::MDRangePolicy<Kokkos::Rank<2>> policy_alb({0,0}, {nbndsw, ncol});
+    Kokkos::parallel_for("AlbedoInterpolation", policy_alb, KOKKOS_LAMBDA (const int band, const int j) {
+      real delwave = band_lims(1, band) - band_lims(0, band);
+      real frc_vis = Kokkos::min(1.0, Kokkos::max(0.0, (band_lims(1, band) - nir_vis_boundary) / delwave));
+      albdif(band,j) = input.alb_vis_dif(j) * frc_vis + input.alb_nir_dif(j) * (1.0 - frc_vis);
+      albdir(band,j) = input.alb_vis_dir(j) * frc_vis + input.alb_nir_dir(j) * (1.0 - frc_vis);
+    });
+
+    Kokkos::fence();
+
+    // FluxesBybandK<real, LayoutT> fluxes_sw;
+
+    real2d_t flux_up_sw ( "flux_up_sw", ncol, klev+1);
+    real2d_t flux_dn_sw ( "flux_dn_sw", ncol, klev+1);
+    real2d_t flux_net_sw("flux_net_sw", ncol, klev+1);
+
+    fluxes_sw.flux_up = flux_up_sw;
+    fluxes_sw.flux_dn = flux_dn_sw;
+    fluxes_sw.flux_net = flux_net_sw;
+
+    rte_sw(atmos_sw, top_at_1, mu0_k, toa_flux, albdir, albdif, fluxes_sw);
+
+    // print out full fluxes_sw.flux_up, fluxes_sw.flux_dn, fluxes_sw.flux_net on separate netcdf files
+    // declare create_netcdf_file function
+    // create_netcdf_file("flux_up_sw.nc", fluxes_sw.flux_up);
+    // create_netcdf_file("flux_dn_sw.nc", fluxes_sw.flux_dn);
+    // create_netcdf_file("flux_net_sw.nc", fluxes_sw.flux_net);
 
     std::cout << "on_block() processing complete.\n";
 };

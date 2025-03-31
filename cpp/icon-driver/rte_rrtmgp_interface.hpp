@@ -7,6 +7,8 @@
 #include <iostream>
 #include <limits>
 #include <cmath>
+#include "mo_optical_props.h"
+#include "mo_fluxes.h"
 
 // Declaration of the RteRrtmgpInterface class.
 class RteRrtmgpInterface {
@@ -26,6 +28,9 @@ public:
     double effective_radius;
     double nir_vis_boundary;
     
+    FluxesBroadbandK<real, LayoutT> fluxes_lw;
+    FluxesBroadbandK<real, LayoutT> fluxes_sw;
+
     // Constructor that stores a reference to the external InputData.
     RteRrtmgpInterface(const InputData &data);
     
