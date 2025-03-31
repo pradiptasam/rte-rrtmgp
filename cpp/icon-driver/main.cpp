@@ -24,7 +24,8 @@ int main() {
   using hreal2d_t = Kokkos::View<real**, LayoutT, Kokkos::DefaultHostExecutionSpace>;
   {
     // Name of the NetCDF input file.
-    std::string filename = "rte_rrtmgp_interface_input.nc";
+    // std::string filename = "rte_rrtmgp_interface_input.nc";
+    std::string filename = "rte_rrtmgp_interface_input_dropsondes.nc";
     printf("filename: %s\n", filename.c_str());
 
     try {
