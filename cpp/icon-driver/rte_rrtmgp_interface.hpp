@@ -36,6 +36,8 @@ public:
     
     // on_block() arranges inputs and computes output arrays.
     void on_block();
+
+    void create_netcdf_file(std::string filename);
 };
 
 #endif // RTE_RRTMGP_INTERFACE_HPP

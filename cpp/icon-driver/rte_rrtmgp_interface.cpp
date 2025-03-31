@@ -482,3 +482,43 @@ void RteRrtmgpInterface::on_block() {
 
     std::cout << "on_block() processing complete.\n";
 };
+
+void RteRrtmgpInterface::create_netcdf_file(std::string filename) {
+  try {
+    netCDF::NcFile nc(filename, netCDF::NcFile::replace);
+
+    // Define the dimensions.
+    NcDim ncol_dim = nc.addDim("ncol", input.ncol);
+    NcDim klev_dim = nc.addDim("klev", input.klev+1);
+
+    // Define the variables.
+    NcVar flux_up_lw_var = nc.addVar("flux_up_lw", ncFloat, {ncol_dim, klev_dim});
+    NcVar flux_dn_lw_var = nc.addVar("flux_dn_lw", ncFloat, {ncol_dim, klev_dim});
+    NcVar flux_net_lw_var = nc.addVar("flux_net_lw", ncFloat, {ncol_dim, klev_dim});
+    NcVar flux_up_sw_var = nc.addVar("flux_up_sw", ncFloat, {ncol_dim, klev_dim});
+    NcVar flux_dn_sw_var = nc.addVar("flux_dn_sw", ncFloat, {ncol_dim, klev_dim});
+    NcVar flux_net_sw_var = nc.addVar("flux_net_sw", ncFloat, {ncol_dim, klev_dim});
+
+    auto flux_up_lw_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), fluxes_lw.flux_up);
+    auto flux_dn_lw_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), fluxes_lw.flux_dn);
+    auto flux_net_lw_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), fluxes_lw.flux_net);
+    auto flux_up_sw_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), fluxes_sw.flux_up);
+    auto flux_dn_sw_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), fluxes_sw.flux_dn);
+    auto flux_net_sw_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), fluxes_sw.flux_net);
+
+    // Write the data.
+    flux_up_lw_var.putVar(flux_up_lw_host.data());
+    flux_dn_lw_var.putVar(flux_dn_lw_host.data());
+    flux_net_lw_var.putVar(flux_net_lw_host.data());
+
+    flux_up_sw_var.putVar(flux_up_sw_host.data());
+    flux_dn_sw_var.putVar(flux_dn_sw_host.data());
+    flux_net_sw_var.putVar(flux_net_sw_host.data());
+
+    // Close the file.
+    nc.close();
+
+  } catch (netCDF::exceptions::NcException &e) {
+    std::cerr << "Error creating netCDF file '" << filename << "': " << e.what() << std::endl;
+  }
+}
