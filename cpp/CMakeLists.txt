@@ -70,11 +70,11 @@ else()
 endif()
 
 # Special compile flags for C++ source
-target_include_directories(rrtmgp PUBLIC ./)
-target_include_directories(rrtmgp PUBLIC rte)
-target_include_directories(rrtmgp PUBLIC rte/kernels)
-target_include_directories(rrtmgp PUBLIC rrtmgp)
-target_include_directories(rrtmgp PUBLIC rrtmgp/kernels)
+target_include_directories(rrtmgp PUBLIC ${CMAKE_SOURCE_DIR})
+target_include_directories(rrtmgp PUBLIC ${CMAKE_SOURCE_DIR}/rte)
+target_include_directories(rrtmgp PUBLIC ${CMAKE_SOURCE_DIR}/rte/kernels)
+target_include_directories(rrtmgp PUBLIC ${CMAKE_SOURCE_DIR}/rrtmgp)
+target_include_directories(rrtmgp PUBLIC ${CMAKE_SOURCE_DIR}/rrtmgp/kernels)
 
 if (RRTMGP_ENABLE_KOKKOS)
   add_subdirectory(icon-driver)
