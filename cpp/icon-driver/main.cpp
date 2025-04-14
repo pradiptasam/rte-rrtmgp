@@ -39,7 +39,7 @@ int main() {
       // Call the on_block() method to process the data.
       iface.on_block();
 
-      iface.create_netcdf_file("flux_lw.nc");
+      iface.create_netcdf_file("flux_lw_sw.nc");
       std::cout << "Test passed." << std::endl;
     } catch (std::exception &e) {
       std::cerr << "Error: " << e.what() << std::endl;
