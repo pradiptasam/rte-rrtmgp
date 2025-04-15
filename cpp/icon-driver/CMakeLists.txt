@@ -6,6 +6,11 @@ project(standalone C CXX)
 
 set(CMAKE_BUILD_TYPE "DEBUG")
 
+# stop the build if YAKL is enabled
+if (RRTMGP_ENABLE_YAKL)
+  message(FATAL_ERROR "RRTMGP: YAKL is not supported in this build")
+endif()
+
 # set(CMAKE_CXX_FLAGS "-std=gnu++17 -O2 -g -march=native -mtune=native" CACHE STRING "RelWithDebInfo C++ flags" FORCE)
 
 # find_library(NETCDF_LIBRARY NAMES netcdf_c++4 PATHS /sw/spack-levante/netcdf-cxx4-4.3.1-sbk7ks/lib)
@@ -59,6 +64,46 @@ set(Kokkos_ARCH_NATIVE ON CACHE BOOL "Kokkos native architecture optimisations")
 
 FetchContent_MakeAvailable(kokkos)
 
+# message(STATUS "NETCDF_INCLUDE_DIR: ${netCDF_INCLUDE_DIR}")
+# if (netCDF-CXX4_LIBRARIES AND netCDF-CXX4_INCLUDE_DIRS AND netCDF_LIBRARY)
+#   target_include_directories(${TARGET_NAME} PUBLIC ${netCDF_INCLUDE_DIR})
+#   target_include_directories(${TARGET_NAME} PUBLIC ${netCDF-CXX4_INCLUDE_DIRS})
+# else()
+#   message(WARNING "NetCDFCXX not found; allsky will not be built")
+#   return() # Skip the rest of the file
+# endif()
+
+# Define common include directories
+set(COMMON_INCLUDE_DIRS
+    ${CMAKE_SOURCE_DIR}/rte
+    ${CMAKE_SOURCE_DIR}/rte/kernels
+    ${CMAKE_SOURCE_DIR}/rrtmgp
+    ${CMAKE_SOURCE_DIR}/rrtmgp/kernels
+    ${CMAKE_SOURCE_DIR}/extensions/cloud_optics
+    ${CMAKE_SOURCE_DIR}/examples
+    ${CMAKE_SOURCE_DIR}
+)
+
+# Create the library from rte_rrtmgp_interface.cpp
+set(LIB_NAME rrtmgp_interface)
+add_library(${LIB_NAME} STATIC ${CMAKE_CURRENT_SOURCE_DIR}/rte_rrtmgp_interface.cpp)
+set_target_properties(
+  ${LIB_NAME}
+  PROPERTIES  C_STANDARD 99
+              C_STANDARD_REQUIRED ON)
+
+target_include_directories(
+  ${LIB_NAME}
+  PUBLIC
+    ${COMMON_INCLUDE_DIRS}
+    "${netCDF_INCLUDE_DIR}"
+    "${netCDF-CXX4_INCLUDE_DIRS}"
+  INTERFACE
+    $<BUILD_INTERFACE:$<$<COMPILE_LANGUAGE:C,CXX>:${CMAKE_CURRENT_SOURCE_DIR}>>
+  PRIVATE
+    $<BUILD_INTERFACE:$<$<COMPILE_LANGUAGE:C,CXX>:${CMAKE_CURRENT_BINARY_DIR}>>)
+
+
 set(TARGET_NAME icon_radiation)
 set(
     SOURCES
@@ -67,35 +112,50 @@ set(
     ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp
    )
 
-add_executable(${TARGET_NAME} ${SOURCES})
-# add_library(${TARGET_NAME} MODULE ${SOURCES})
-target_include_directories(${TARGET_NAME} PUBLIC ${CMAKE_SOURCE_DIR}/rte)
-target_include_directories(${TARGET_NAME} PUBLIC ${CMAKE_SOURCE_DIR}/rte/kernels)
-target_include_directories(${TARGET_NAME} PUBLIC ${CMAKE_SOURCE_DIR}/rrtmgp)
-target_include_directories(${TARGET_NAME} PUBLIC ${CMAKE_SOURCE_DIR}/rrtmgp/kernels)
-target_include_directories(${TARGET_NAME} PUBLIC ${CMAKE_SOURCE_DIR}/extensions/cloud_optics)
-target_include_directories(${TARGET_NAME} PUBLIC ${CMAKE_SOURCE_DIR}/examples)
-target_include_directories(${TARGET_NAME} PUBLIC ${CMAKE_SOURCE_DIR})
-
-message(STATUS "NETCDF_INCLUDE_DIR: ${netCDF_INCLUDE_DIR}")
-if (netCDF-CXX4_LIBRARIES AND netCDF-CXX4_INCLUDE_DIRS AND netCDF_LIBRARY)
-  target_include_directories(${TARGET_NAME} PUBLIC ${netCDF_INCLUDE_DIR})
-  target_include_directories(${TARGET_NAME} PUBLIC ${netCDF-CXX4_INCLUDE_DIRS})
-else()
-  message(WARNING "NetCDFCXX not found; allsky will not be built")
-  return() # Skip the rest of the file
-endif()
-
-if (RRTMGP_ENABLE_YAKL)
-  include(${YAKL_HOME}/yakl_utils.cmake)
-  yakl_process_target(${TARGET_NAME})
-  target_compile_definitions(${TARGET_NAME} PUBLIC RRTMGP_ENABLE_YAKL)
-  target_link_libraries(${TARGET_NAME} PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/../../build/librrtmgp.a" "${CXX_LINK}" "${NETCDF_LIBRARY}")
-endif()
 if (RRTMGP_ENABLE_KOKKOS)
-  # find_package(Kokkos REQUIRED)
-  # target_link_libraries(${TARGET_NAME} Kokkos::kokkos)
-  target_compile_definitions(${TARGET_NAME} PUBLIC RRTMGP_ENABLE_KOKKOS)
-  message(STATUS "netCDF-C libraries: ${netCDF_LIBRARY}")
-  target_link_libraries(${TARGET_NAME} PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/../../build/librrtmgp.a" "${CXX_LINK}" "${netCDF_LIBRARY}" "${netCDF-CXX4_LIBRARIES}" Kokkos::kokkos)
+  target_compile_definitions(${LIB_NAME} PUBLIC RRTMGP_ENABLE_KOKKOS)
+  target_link_libraries(${LIB_NAME} PUBLIC "${CMAKE_CURRENT_BINARY_DIR}/../../build/librrtmgp.a" 
+                                          "${CXX_LINK}"
+                                          "${netCDF_LIBRARY}"
+                                          "${netCDF-CXX4_LIBRARIES}"
+                                          Kokkos::kokkos)
 endif()
+
+# Create the executable from main.cpp and read_data.cpp
+set(TARGET_NAME icon_radiation)
+set(EXEC_SOURCES
+    ${CMAKE_CURRENT_SOURCE_DIR}/read_data.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp
+)
+
+add_executable(${TARGET_NAME} ${EXEC_SOURCES})
+target_include_directories(${TARGET_NAME} PUBLIC ${COMMON_INCLUDE_DIRS})
+target_include_directories(${TARGET_NAME} PUBLIC ${netCDF_INCLUDE_DIR})
+target_include_directories(${TARGET_NAME} PUBLIC ${netCDF-CXX4_INCLUDE_DIRS})
+
+# Link the executable with the library
+target_link_libraries(${TARGET_NAME} PRIVATE ${LIB_NAME})
+
+# Configure the executable with Kokkos if needed
+if (RRTMGP_ENABLE_KOKKOS)
+  target_compile_definitions(${TARGET_NAME} PUBLIC RRTMGP_ENABLE_KOKKOS)
+endif()
+
+# add_executable(${TARGET_NAME} ${SOURCES})
+# # add_library(${TARGET_NAME} MODULE ${SOURCES})
+# target_include_directories(${TARGET_NAME} PUBLIC ${CMAKE_SOURCE_DIR}/rte)
+# target_include_directories(${TARGET_NAME} PUBLIC ${CMAKE_SOURCE_DIR}/rte/kernels)
+# target_include_directories(${TARGET_NAME} PUBLIC ${CMAKE_SOURCE_DIR}/rrtmgp)
+# target_include_directories(${TARGET_NAME} PUBLIC ${CMAKE_SOURCE_DIR}/rrtmgp/kernels)
+# target_include_directories(${TARGET_NAME} PUBLIC ${CMAKE_SOURCE_DIR}/extensions/cloud_optics)
+# target_include_directories(${TARGET_NAME} PUBLIC ${CMAKE_SOURCE_DIR}/examples)
+# target_include_directories(${TARGET_NAME} PUBLIC ${CMAKE_SOURCE_DIR})
+
+
+# if (RRTMGP_ENABLE_KOKKOS)
+#   # find_package(Kokkos REQUIRED)
+#   # target_link_libraries(${TARGET_NAME} Kokkos::kokkos)
+#   target_compile_definitions(${TARGET_NAME} PUBLIC RRTMGP_ENABLE_KOKKOS)
+#   message(STATUS "netCDF-C libraries: ${netCDF_LIBRARY}")
+#   target_link_libraries(${TARGET_NAME} PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/../../build/librrtmgp.a" "${CXX_LINK}" "${netCDF_LIBRARY}" "${netCDF-CXX4_LIBRARIES}" Kokkos::kokkos)
+# endif()
