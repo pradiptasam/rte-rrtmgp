@@ -40,13 +40,20 @@ int main() {
       iface.on_block();
 
       iface.create_netcdf_file("flux_lw_sw.nc");
+      iface.~RteRrtmgpInterface();
       std::cout << "Test passed." << std::endl;
     } catch (std::exception &e) {
       std::cerr << "Error: " << e.what() << std::endl;
       return 1;
     }
 
+    try {
+      Kokkos::finalize();
+      std::cout << "Kokkos finalized successfully" << std::endl;
+    } catch (const std::exception& e) {
+      std::cerr << "Exception during Kokkos::finalize(): " << e.what() << std::endl;
+      // Don't return, let the program continue to end naturally
+    }
     return 0;
   }
-  Kokkos::finalize();
 }
