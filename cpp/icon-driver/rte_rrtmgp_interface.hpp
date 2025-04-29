@@ -31,9 +31,13 @@ public:
     FluxesBroadbandK<real, LayoutT> fluxes_lw;
     FluxesBroadbandK<real, LayoutT> fluxes_sw;
 
+    // Output optical depths
+    real2d_t tau_ice;
+    real2d_t tau_snow;
+
     // Constructor that stores a reference to the external InputData.
     RteRrtmgpInterface(const InputData &data);
-    
+
     // on_block() arranges inputs and computes output arrays.
     void on_block();
 

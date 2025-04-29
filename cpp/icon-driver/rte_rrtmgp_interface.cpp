@@ -174,8 +174,8 @@ void RteRrtmgpInterface::on_block() {
     Kokkos::deep_copy(ziwp, 0.0);
     Kokkos::deep_copy(zlwp, 0.0);
     Kokkos::deep_copy(zswp, 0.0);
-    Kokkos::deep_copy(tau_ice, 0.0);
-    Kokkos::deep_copy(tau_snow, 0.0);
+    // Kokkos::deep_copy(tau_ice, 0.0);
+    // Kokkos::deep_copy(tau_snow, 0.0);
     Kokkos::deep_copy(zdwp, 0.0);
 
     real2d_t re_cryst("re_cryst", ncol, klev);
@@ -317,7 +317,7 @@ void RteRrtmgpInterface::on_block() {
 
     pool_t::init(2e6 * (float(my_size_ref) / base_ref));
 
-    pool_t::print_stats();
+    // pool_t::print_stats();
 
     real3d_t col_gas("col_gas", ncol, klev, k_dist_lw.get_ngas()+1);
     bool top_at_1 = false; // Do not know the actual value yet
@@ -401,7 +401,7 @@ void RteRrtmgpInterface::on_block() {
 
     pool_t::init(2e6 * (float(my_size_ref) / base_ref));
 
-    pool_t::print_stats();
+    // pool_t::print_stats();
 
     OpticalProps2strK<real, LayoutT> atmos_sw;
     OpticalProps2strK<real, LayoutT> clouds_bnd_sw;

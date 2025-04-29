@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0)
-project(standalone C CXX)
+project(standalone C CXX Fortran)
 
 # find_library(NETCDF_LIBRARY NAMES netcdf PATHS /sw/spack-levante/netcdf-c-4.9.2-ytsqvg/lib)
 # find_path(NETCDF_INCLUDE_DIR NAMES netcdf.h PATHS /sw/spack-levante/netcdf-c-4.9.2-ytsqvg/include)
@@ -104,13 +104,13 @@ target_include_directories(
     $<BUILD_INTERFACE:$<$<COMPILE_LANGUAGE:C,CXX>:${CMAKE_CURRENT_BINARY_DIR}>>)
 
 
-set(TARGET_NAME icon_radiation)
-set(
-    SOURCES
-    ${CMAKE_CURRENT_SOURCE_DIR}/read_data.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/rte_rrtmgp_interface.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp
-   )
+# set(TARGET_NAME icon_radiation)
+# set(
+#     SOURCES
+#     ${CMAKE_CURRENT_SOURCE_DIR}/read_data.cpp
+#     ${CMAKE_CURRENT_SOURCE_DIR}/rte_rrtmgp_interface.cpp
+#     ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp
+#    )
 
 if (RRTMGP_ENABLE_KOKKOS)
   target_compile_definitions(${LIB_NAME} PUBLIC RRTMGP_ENABLE_KOKKOS)
@@ -120,6 +120,36 @@ if (RRTMGP_ENABLE_KOKKOS)
                                           "${netCDF-CXX4_LIBRARIES}"
                                           Kokkos::kokkos)
 endif()
+
+set(CMAKE_Fortran_MODULE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/modules)
+
+set(FORTRAN_INTERFACE_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/rte_rrtmgp_interface.f90)
+set(C_WRAPPER_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/rte_rrtmgp_wrapper.cpp)
+
+set(INTERFACE_LIB_NAME rrtmgp_fortran_interface)
+add_library(${INTERFACE_LIB_NAME} STATIC 
+    ${C_WRAPPER_SOURCE} 
+    ${FORTRAN_INTERFACE_SOURCE}
+)
+
+set_target_properties(
+  ${INTERFACE_LIB_NAME}
+  PROPERTIES
+    Fortran_MODULE_DIRECTORY ${CMAKE_Fortran_MODULE_DIRECTORY}
+)
+
+target_include_directories(
+  ${INTERFACE_LIB_NAME}
+  PUBLIC
+    ${COMMON_INCLUDE_DIRS}
+    "${netCDF_INCLUDE_DIR}"
+    "${netCDF-CXX4_INCLUDE_DIRS}"
+)
+
+target_link_libraries(${INTERFACE_LIB_NAME} PUBLIC ${LIB_NAME})
+
+target_compile_definitions(${INTERFACE_LIB_NAME} PUBLIC RRTMGP_ENABLE_KOKKOS)
+target_link_libraries(${INTERFACE_LIB_NAME} PUBLIC Kokkos::kokkos)
 
 # Create the executable from main.cpp and read_data.cpp
 set(TARGET_NAME icon_radiation)
