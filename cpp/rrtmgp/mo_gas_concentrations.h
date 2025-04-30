@@ -403,7 +403,9 @@ public:
     // for (int ilay=1; ilay<=size(array,2); ilay++) {
     //   for (int icol=1; icol<=size(array,1); icol++) {
     auto this_concs = this->concs;
-    TIMED_KERNEL(FLATTEN_MD_KERNEL2(array.extent(0), array.extent(1), icol, ilay,
+    const int ncol_int = static_cast<int>(array.extent(0));
+    const int nlay_int = static_cast<int>(array.extent(1));
+    TIMED_KERNEL(FLATTEN_MD_KERNEL2(ncol_int, nlay_int, icol, ilay,
       array(icol,ilay) = this_concs(icol,ilay,igas);
     ));
   }
