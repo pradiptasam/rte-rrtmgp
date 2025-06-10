@@ -2,6 +2,8 @@ MODULE rte_rrtmgp_interface_mod
   USE, INTRINSIC :: ISO_C_BINDING
   IMPLICIT NONE
   
+  PUBLIC :: rte_rrtmgp_interface_onBlock
+
   INTERFACE
     SUBROUTINE rte_rrtmgp_interface_onblock_cpp( &
         lclrsky_lw, lclrsky_sw, inhom_lts, inhom_lts_max, &
@@ -183,10 +185,14 @@ CONTAINS
     ALLOCATE(aer_ssa_sw_1d(ncol*klev*SIZE(aer_ssa_sw, 3)))
     ALLOCATE(aer_asy_sw_1d(ncol*klev*SIZE(aer_asy_sw, 3)))
     
-    ALLOCATE(flx_uplw_1d(ncol*(klev+1)), flx_uplw_clr_1d(ncol*(klev+1)))
-    ALLOCATE(flx_dnlw_1d(ncol*(klev+1)), flx_dnlw_clr_1d(ncol*(klev+1)))
-    ALLOCATE(flx_upsw_1d(ncol*(klev+1)), flx_upsw_clr_1d(ncol*(klev+1)))
-    ALLOCATE(flx_dnsw_1d(ncol*(klev+1)), flx_dnsw_clr_1d(ncol*(klev+1)))
+    ALLOCATE(flx_uplw_1d(ncol*(klev+1)))
+    ALLOCATE(flx_uplw_clr_1d(ncol*size(flx_uplw_clr, 2)))
+    ALLOCATE(flx_dnlw_1d(ncol*(klev+1)))
+    ALLOCATE(flx_dnlw_clr_1d(ncol*size(flx_dnlw_clr, 2)))
+    ALLOCATE(flx_upsw_1d(ncol*(klev+1)))
+    ALLOCATE(flx_upsw_clr_1d(ncol*size(flx_upsw_clr, 2)))
+    ALLOCATE(flx_dnsw_1d(ncol*(klev+1)))
+    ALLOCATE(flx_dnsw_clr_1d(ncol*size(flx_dnsw_clr, 2)))
     
     ! Allocate boolean arrays
     ALLOCATE(c_laland(ncol), c_laglac(ncol))
@@ -274,16 +280,38 @@ CONTAINS
         DO i = 1, ncol
             idx = i + (j-1)*ncol
             flx_uplw_1d(idx) = flx_uplw(i,j)
-            flx_uplw_clr_1d(idx) = flx_uplw_clr(i,j)
             flx_dnlw_1d(idx) = flx_dnlw(i,j)
-            flx_dnlw_clr_1d(idx) = flx_dnlw_clr(i,j)
             flx_upsw_1d(idx) = flx_upsw(i,j)
-            flx_upsw_clr_1d(idx) = flx_upsw_clr(i,j)
             flx_dnsw_1d(idx) = flx_dnsw(i,j)
-            flx_dnsw_clr_1d(idx) = flx_dnsw_clr(i,j)
         END DO
     END DO
     
+    DO j = 1, size(flx_uplw_clr, 2)
+        DO i = 1, ncol
+            idx = i + (j-1)*ncol
+            flx_uplw_clr_1d(idx) = flx_uplw_clr(i,j)
+        END DO
+    END DO
+    DO j = 1, size(flx_dnlw_clr, 2)
+        DO i = 1, ncol
+            idx = i + (j-1)*ncol
+            flx_dnlw_clr_1d(idx) = flx_dnlw_clr(i,j)
+        END DO
+    END DO
+    DO j = 1, size(flx_upsw_clr, 2)
+        DO i = 1, ncol
+            idx = i + (j-1)*ncol
+            flx_upsw_clr_1d(idx) = flx_upsw_clr(i,j)
+            flx_dnsw_clr_1d(idx) = flx_dnsw_clr(i,j)
+        END DO
+    END DO
+    DO j = 1, size(flx_dnsw_clr, 2)
+        DO i = 1, ncol
+            idx = i + (j-1)*ncol
+            flx_dnsw_clr_1d(idx) = flx_dnsw_clr(i,j)
+        END DO
+    END DO
+
     ! Copy surface flux arrays
     c_vis_dn_dir_sfc = vis_dn_dir_sfc
     c_par_dn_dir_sfc = par_dn_dir_sfc
@@ -329,16 +357,40 @@ CONTAINS
         DO i = 1, ncol
             idx = i + (j-1)*ncol
             flx_uplw(i,j) = flx_uplw_1d(idx)
-            flx_uplw_clr(i,j) = flx_uplw_clr_1d(idx)
             flx_dnlw(i,j) = flx_dnlw_1d(idx)
-            flx_dnlw_clr(i,j) = flx_dnlw_clr_1d(idx)
             flx_upsw(i,j) = flx_upsw_1d(idx)
-            flx_upsw_clr(i,j) = flx_upsw_clr_1d(idx)
             flx_dnsw(i,j) = flx_dnsw_1d(idx)
-            flx_dnsw_clr(i,j) = flx_dnsw_clr_1d(idx)
         END DO
     END DO
     
+    DO j = 1, size(flx_uplw_clr, 2)
+        DO i = 1, ncol
+            idx = i + (j-1)*ncol
+            flx_uplw_clr(i,j) = flx_uplw_clr_1d(idx)
+        END DO
+    END DO
+
+    DO j = 1, size(flx_dnlw_clr, 2)
+        DO i = 1, ncol
+            idx = i + (j-1)*ncol
+            flx_dnlw_clr(i,j) = flx_dnlw_clr_1d(idx)
+        END DO
+    END DO
+
+    DO j = 1, size(flx_upsw_clr, 2)
+        DO i = 1, ncol
+            idx = i + (j-1)*ncol
+            flx_upsw_clr(i,j) = flx_upsw_clr_1d(idx)
+        END DO
+    END DO
+
+    DO j = 1, size(flx_dnsw_clr, 2)
+        DO i = 1, ncol
+            idx = i + (j-1)*ncol
+            flx_dnsw_clr(i,j) = flx_dnsw_clr_1d(idx)
+        END DO
+    END DO
+
     ! Copy surface fluxes back to original arrays
     vis_dn_dir_sfc = c_vis_dn_dir_sfc
     par_dn_dir_sfc = c_par_dn_dir_sfc

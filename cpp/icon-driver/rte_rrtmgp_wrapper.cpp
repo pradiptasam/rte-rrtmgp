@@ -42,6 +42,8 @@ extern "C" {
         int ncol_val = *ncol;
         int klev_val = *klev;
         
+        Kokkos::fence();
+
         // Create InputData struct
         InputData input_data;
         input_data.ncol = ncol_val;
@@ -264,16 +266,22 @@ extern "C" {
                 flx_dnlw[idx] = lw_flux_dn_h(i, j);
                 flx_upsw[idx] = sw_flux_up_h(i, j);
                 flx_dnsw[idx] = sw_flux_dn_h(i, j);
-                
-                // For clear-sky fluxes, we would need additional fields in the interface
-                // For now, just use all-sky values as placeholders
-                flx_uplw_clr[idx] = lw_flux_up_h(i, j);
-                flx_dnlw_clr[idx] = lw_flux_dn_h(i, j);
-                flx_upsw_clr[idx] = sw_flux_up_h(i, j);
-                flx_dnsw_clr[idx] = sw_flux_dn_h(i, j);
             }
         }
-        
+                
+        // for (int i = 0; i < ncol_val; i++) {
+        //     for (int j = 0; j < klev_val + 1; j++) {
+        //         int idx = i + j * ncol_val;
+        //
+        //         // For clear-sky fluxes, we would need additional fields in the interface
+        //         // For now, just use all-sky values as placeholders
+        //         flx_uplw_clr[idx] = lw_flux_up_h(i, j);
+        //         flx_dnlw_clr[idx] = lw_flux_dn_h(i, j);
+        //         flx_upsw_clr[idx] = sw_flux_up_h(i, j);
+        //         flx_dnsw_clr[idx] = sw_flux_dn_h(i, j);
+        //     }
+        // }
+
         // For surface fluxes, we would need additional code in the interface
         // For now, set placeholders
         for (int i = 0; i < ncol_val; i++) {
@@ -287,5 +295,7 @@ extern "C" {
             par_up_sfc[i] = 0.0;
             nir_up_sfc[i] = 0.0;
         }
+
+        Kokkos::fence();
     }
 }
