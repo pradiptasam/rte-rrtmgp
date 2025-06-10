@@ -141,6 +141,7 @@ set_target_properties(
 target_include_directories(
   ${INTERFACE_LIB_NAME}
   PUBLIC
+  $<BUILD_INTERFACE:$<$<COMPILE_LANGUAGE:Fortran>:${CMAKE_Fortran_MODULE_DIRECTORY}>>
     ${COMMON_INCLUDE_DIRS}
     "${netCDF_INCLUDE_DIR}"
     "${netCDF-CXX4_INCLUDE_DIRS}"
